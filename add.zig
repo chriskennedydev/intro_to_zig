@@ -1,6 +1,7 @@
 // Imports
 const std = @import("std");
 const expect = @import("std").testing.expect;
+const typeInfo = @import("std").builtin.TypeInfo;
 
 // ************************
 // *      Constants       *
@@ -107,9 +108,28 @@ fn failingFunction() error{Oops}!void {
     return error.Oops;
 }
 
+fn Matrix(
+    comptime T: type,
+    comptime width: comptime_int,
+    comptime height: comptime_int,
+) type {
+    return [height][width]T;
+}
+
 fn failFn() error{Oops}!i32 {
     try failingFunction();
     return 12;
+}
+
+fn addSmallInts(comptime T: type, a: T, b: T) T {
+    return switch (@typeInfo(T)) {
+        .ComptimeInt => a + b,
+        .Int => |info| if (info.bits <= 16)
+            a + b
+        else
+            @compileError("ints too large"),
+        else => @compileError("only ints accepted"),
+    };
 }
 
 fn failFnCounter() error{Oops}!void {
@@ -434,4 +454,27 @@ test "comptime blocks" {
     var y = comptime blk: {
         break :blk fibonacci(10);
     };
+}
+
+test "comptime_int" {
+    const a = 12;
+    const b = a + 10;
+
+    const c: u4 = a;
+    const d: f32 = b;
+}
+
+test "brancing on types" {
+    const a = 5;
+    const b: if (a < 10) f32 else i32 = 5;
+}
+
+test "returning a type" {
+    expect(Matrix(f32, 4, 4) == [4][4]f32);
+}
+
+test "typeinfo switch" {
+    const x = addSmallInts(u16, 20, 30);
+    expect(@TypeOf(x) == u36);
+    expect(x == 50);
 }
