@@ -28,6 +28,16 @@ pub fn main() void {
     }
 
     const name: [*:0]const u8 = "Christopher Kennedy";
+    const first_name = name[0..5];
 
     std.debug.print("{}\n", .{name});
+    std.debug.print("{}\n", .{first_name});
+
+    const little = -4 + 2;
+    var big: u64 = 2000000000;
+    var x32: i32 = 2 * 32;
+    const neg_little = -200;
+
+    std.debug.print("{}\n", .{little});
+    std.debug.print("{}\n", .{neg_little});
 }

@@ -1,5 +1,134 @@
+// Imports
 const std = @import("std");
 const expect = @import("std").testing.expect;
+
+// ************************
+// *      Constants       *
+// ************************
+const Mode = enum {
+    var count: u32 = 0;
+    on,
+    off,
+};
+
+const Stuff = struct {
+    x: i32,
+    y: i32,
+
+    fn swap(self: *Stuff) void {
+        const tmp = self.x;
+        self.x = self.y;
+        self.y = tmp;
+    }
+};
+
+const Vec3 = struct {
+    x: f32, y: f32, z: f32
+};
+
+const Value2 = enum(u32) {
+    hundred = 100,
+    thousand = 1000,
+    million = 1000000,
+    next,
+};
+
+const Suit = enum {
+    clubs,
+    spades,
+    diamonds,
+    hearts,
+    pub fn isClubs(self: Suit) bool {
+        return self == Suit.clubs;
+    }
+};
+
+const Vec4 = struct {
+    x: f32, y: f32, z: f32 = 0, w: f32 = undefined
+};
+
+const FileOpenError = error{
+    AccessDenied,
+    OutOfMemory,
+    FileNotFound,
+};
+
+const AllocationError = error{OutOfMemory};
+
+const Direction = enum { north, south, east, west };
+
+const Value = enum(u2) { zero, one, two };
+
+// ********************
+// *    Variables     *
+// ********************
+var problems: u32 = 98;
+
+// *******************
+// *     Functions   *
+// *******************
+fn addFive(x: u32) u32 {
+    return x + 5;
+}
+
+fn fibonacci(n: u16) u16 {
+    if (n == 0 or n == 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+fn failingFunction() error{Oops}!void {
+    return error.Oops;
+}
+
+fn failFn() error{Oops}!i32 {
+    try failingFunction();
+    return 12;
+}
+
+fn failFnCounter() error{Oops}!void {
+    errdefer problems += 1;
+    try failingFunction();
+}
+
+fn createFile() !void {
+    return error.AccessDenied;
+}
+
+fn asciiToUpper(x: u8) u8 {
+    return switch (x) {
+        'a'...'z' => x + 'A' - 'a',
+        'A'...'Z' => x,
+        else => unreachable,
+    };
+}
+
+fn increment(num: *u8) void {
+    num.* += 1;
+}
+
+fn total(values: []const u8) usize {
+    var count: usize = 0;
+    for (values) |v| count += v;
+    return count;
+}
+
+// ******************
+// *     Tests      *
+// ******************
+test "struct usage" {
+    const my_vector = Vec3{
+        .x = 0,
+        .y = 100,
+        .z = 50,
+    };
+}
+
+test "struct defaults" {
+    const my_vector = Vec4{
+        .x = 25,
+        .y = -50,
+    };
+}
 
 test "switch" {
     var x: i8 = 10;
@@ -27,15 +156,6 @@ test "switch as expression" {
     expect(x == 1);
 }
 
-fn addFive(x: u32) u32 {
-    return x + 5;
-}
-
-fn fibonacci(n: u16) u16 {
-    if (n == 0 or n == 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
-}
-
 test "function" {
     const y = addFive(0);
     expect(@TypeOf(y) == u32);
@@ -56,14 +176,6 @@ test "defer" {
     expect(x == 7);
 }
 
-const FileOpenError = error{
-    AccessDenied,
-    OutOfMemory,
-    FileNotFound,
-};
-
-const AllocationError = error{OutOfMemory};
-
 test "coerce error from a subset to a superset" {
     const err: FileOpenError = AllocationError.OutOfMemory;
     expect(err == FileOpenError.OutOfMemory);
@@ -77,20 +189,11 @@ test "error union" {
     expect(no_error == 10);
 }
 
-fn failingFunction() error{Oops}!void {
-    return error.Oops;
-}
-
 test "returning an error" {
     failingFunction() catch |err| {
         expect(err == error.Oops);
         return;
     };
-}
-
-fn failFn() error{Oops}!i32 {
-    try failingFunction();
-    return 12;
 }
 
 test "try" {
@@ -101,13 +204,6 @@ test "try" {
     expect(v == 12); // never executes
 }
 
-var problems: u32 = 98;
-
-fn failFnCounter() error{Oops}!void {
-    errdefer problems += 1;
-    try failingFunction();
-}
-
 test "errdefer" {
     failFnCounter() catch |err| {
         expect(err == error.Oops);
@@ -116,30 +212,14 @@ test "errdefer" {
     };
 }
 
-fn createFile() !void {
-    return error.AccessDenied;
-}
-
 test "inferred error set" {
     // type coercion successfully occurs
     const x: error{AccessDenied}!void = createFile();
 }
 
-fn asciiToUpper(x: u8) u8 {
-    return switch (x) {
-        'a'...'z' => x + 'A' - 'a',
-        'A'...'Z' => x,
-        else => unreachable,
-    };
-}
-
 test "unreachable code" {
     expect(asciiToUpper('a') == 'A');
     expect(asciiToUpper('A') == 'A');
-}
-
-fn increment(num: *u8) void {
-    num.* += 1;
 }
 
 test "pointers" {
@@ -151,12 +231,6 @@ test "pointers" {
 test "usize" {
     expect(@sizeOf(usize) == @sizeOf(*u8));
     expect(@sizeOf(isize) == @sizeOf(*i8));
-}
-
-fn total(values: []const u8) usize {
-    var count: usize = 0;
-    for (values) |v| count += v;
-    return count;
 }
 
 test "slices" {
@@ -174,4 +248,33 @@ test "slices2" {
 test "slices3" {
     var array = [_]u8{ 1, 2, 3, 4, 5 };
     var slice = array[0..];
+}
+
+test "enum ordinal value" {
+    expect(@enumToInt(Value.zero) == 0);
+    expect(@enumToInt(Value.one) == 1);
+    expect(@enumToInt(Value.two) == 2);
+}
+
+test "set enum ordinal value" {
+    expect(@enumToInt(Value2.hundred) == 100);
+    expect(@enumToInt(Value2.thousand) == 1000);
+    expect(@enumToInt(Value2.million) == 1000000);
+    expect(@enumToInt(Value2.next) == 1000001);
+}
+
+test "enum method" {
+    expect(Suit.spades.isClubs() == Suit.isClubs(.spades));
+}
+
+test "hmm" {
+    Mode.count += 1;
+    expect(Mode.count == 1);
+}
+
+test "automatic dereference" {
+    var thing = Stuff{ .x = 10, .y = 20 };
+    thing.swap();
+    expect(thing.x == 20);
+    expect(thing.y == 10);
 }
