@@ -11,6 +11,32 @@ const Mode = enum {
     off,
 };
 
+const decimal_int: i32 = 98222;
+
+const hex_int: u8 = 0xff;
+
+const another_hex_int: u8 = 0xFF;
+
+const octal_int: u16 = 0o755;
+
+const binary_int: u8 = 0b11110000;
+
+const one_billion: u64 = 1_000_000_000;
+
+const binary_mask: u64 = 0b1_1111_1111;
+
+const permissions: u64 = 0o7_5_5;
+
+const big_address: u64 = 0xFF80_0000_0000_0000;
+
+const Tag = enum { a, b, c };
+
+const Tagged = union(Tag) { a: u8, b: f32, c: bool };
+
+const Tagged2 = union(enum) { a: u8, b: f32, c: bool };
+
+const Tagged3 = union(enum) { a: u8, b: f32, c: bool, none };
+
 const Stuff = struct {
     x: i32,
     y: i32,
@@ -277,4 +303,53 @@ test "automatic dereference" {
     thing.swap();
     expect(thing.x == 20);
     expect(thing.y == 10);
+}
+
+test "switch on tagged union" {
+    var value = Tagged3{ .b = 1.5 };
+    switch (value) {
+        .a => |*byte| byte.* += 1,
+        .b => |*float| float.* *= 2,
+        .c => |*b| b.* = !b.*,
+        .none => |*none| std.debug.print("None\n", .{}),
+    }
+    expect(value.b == 3);
+}
+
+test "integer widening" {
+    const a: u8 = 250;
+    const b: u16 = a;
+    const c: u32 = b;
+
+    expect(c == a);
+}
+
+test "@intCast" {
+    const x: u64 = 200;
+    const y = @intCast(u8, x);
+    expect(@TypeOf(y) == u8);
+}
+
+test "well defined overflow" {
+    var a: u8 = 255;
+    a +%= 1;
+    expect(a == 0);
+}
+
+test "float widening" {
+    const a: f16 = 0;
+    const b: f32 = a;
+    const c: f128 = b;
+    expect(c == @as(f128, a));
+}
+
+test "labelled blocks" {
+    const count = blk: {
+        var sum: u32 = 0;
+        var i: u32 = 0;
+        while (i < 10) : (i += 1) sum += i;
+        break :blk sum;
+    };
+    expect(count == 45);
+    expect(@TypeOf(count) == u32);
 }
