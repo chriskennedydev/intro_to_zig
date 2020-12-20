@@ -89,6 +89,7 @@ const Value = enum(u2) { zero, one, two };
 // *    Variables     *
 // ********************
 var problems: u32 = 98;
+var numbers_left: u32 = 4;
 
 // *******************
 // *     Functions   *
@@ -120,12 +121,28 @@ fn createFile() !void {
     return error.AccessDenied;
 }
 
+fn rangeHasNumber(begin: usize, end: usize, number: usize) bool {
+    var i = begin;
+
+    return while (i < end) : (i += 1) {
+        if (i == number) {
+            break true;
+        }
+    } else false;
+}
+
 fn asciiToUpper(x: u8) u8 {
     return switch (x) {
         'a'...'z' => x + 'A' - 'a',
         'A'...'Z' => x,
         else => unreachable,
     };
+}
+
+fn eventuallyNullSequence() ?u32 {
+    if (numbers_left == 0) return null;
+    numbers_left -= 1;
+    return numbers_left;
 }
 
 fn increment(num: *u8) void {
@@ -344,12 +361,77 @@ test "float widening" {
 }
 
 test "labelled blocks" {
-    const count = blk: {
+    const count = blkloop: {
         var sum: u32 = 0;
         var i: u32 = 0;
         while (i < 10) : (i += 1) sum += i;
-        break :blk sum;
+        break :blkloop sum;
     };
     expect(count == 45);
     expect(@TypeOf(count) == u32);
+}
+
+test "nested continue" {
+    var count: usize = 0;
+    outer: for ([_]i32{ 1, 2, 3, 4, 5, 6, 7, 8 }) |_| {
+        for ([_]i32{ 1, 2, 3, 4, 5 }) |_| {
+            count += 1;
+            continue :outer;
+        }
+    }
+    expect(count == 8);
+}
+
+test "while loop expr" {
+    expect(rangeHasNumber(0, 10, 3));
+}
+
+test "optional" {
+    var found_index: ?usize = null;
+    const data = [_]i32{ 1, 2, 3, 4, 5, 6, 7, 8, 12 };
+    for (data) |v, i| {
+        if (v == 10) found_index = i;
+    }
+    expect(found_index == null);
+}
+
+test "orelse" {
+    var a: ?f32 = null;
+    var b = a orelse 0;
+    expect(b == 0);
+    expect(@TypeOf(b) == f32);
+}
+
+test "orelse unreachable" {
+    const a: ?f32 = 5;
+    const b = a orelse unreachable;
+    const c = a.?;
+    expect(b == c);
+    expect(@TypeOf(c) == f32);
+}
+
+test "if optional payload capture" {
+    const a: ?i32 = 5;
+    if (a != null) {
+        const value = a.?;
+    }
+
+    const b: ?i32 = 5;
+    if (b) |value| {}
+}
+
+test "while null capture" {
+    var sum: u32 = 0;
+    while (eventuallyNullSequence()) |value| {
+        sum += value;
+    }
+    expect(sum == 6);
+}
+
+test "comptime blocks" {
+    var x = comptime fibonacci(10);
+
+    var y = comptime blk: {
+        break :blk fibonacci(10);
+    };
 }
